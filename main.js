@@ -1,120 +1,132 @@
-const notesContainer = document.getElementById("app");             // The element Container
-const addNoteButton = notesContainer.querySelector(".add-note");   
+ 
+"use strict";
 
-getNotes().forEach((note) => {
-  const noteElement = createNoteElement(note.id, note.content, note.creationDate, note.dateUpdate);
-  notesContainer.insertBefore(noteElement, addNoteButton);
+let notesContainer = document.getElementById("app");             // Get the container element
+let addNoteButton = notesContainer.querySelector(".add-note");   // Get the add Note button element
+addNoteButton.addEventListener("click", () => addNote());     // Add Note Button event listener
 
-  const noteElement2 = createNoteElement2(note.id, note.content, note.creationDate, note.dateUpdate);
-  notesContainer.insertBefore(noteElement2, addNoteButton);
+let fragment = document.createDocumentFragment();    // Create the fragment for a refresh page
 
+getNotes().forEach((note) => {     // Get the notes and create the elements to be rendered
+  createInsertNotesElements(note.id, note.content, note.creationDate, note.dateUpdate);
 });
+fragment.appendChild(addNoteButton);   // Add the button to the fragment
+notesContainer.appendChild(fragment);  // Add the fragment to the container
 
-addNoteButton.addEventListener("click", () => addNote());
 
-function getNotes() {
-  return JSON.parse(localStorage.getItem("notes-stored") || "[]");
+function createInsertNotesElements(id, content, creationDate, dateUpdate){
+    let elements = createNoteElements(id, content, creationDate, dateUpdate);
+    fragment.appendChild(elements[0]);    // Each element is added to the fragment
+    fragment.appendChild(elements[1]);    // Each element is added to the fragment
+    fragment.appendChild(elements[2]);    // Each element is added to the fragment
 }
 
-function saveNotes(notes) {
-  localStorage.setItem("notes-stored", JSON.stringify(notes));
+function createNoteElements(id, content, creationDate, dateUpdate){
+  let textElement = createTextElement(id, content, creationDate);  
+  let deleteButtom = createDeleteButtom(id);
+  let datesInfoArea = createDatesInfoArea(creationDate, dateUpdate);
+  return [textElement, deleteButtom, datesInfoArea];  
 }
-
-function createNoteElement(id, content, creationDate, Update) {
-  const element = document.createElement("textarea");
+function createTextElement(id, content, creationDate) {   // Create the text area element  
+  let element = document.createElement("textarea");
   element.classList.add("note");
   element.value = content;
   element.placeholder = "Write Here";
-
-  element.addEventListener("change", () => {
-    updateNote(id, element.value);
-    notes = getNotes();
-    saveNotes(notes);
+  element.addEventListener("change", () => {                 // Add a element event listener (change)
+    updateNote(id, element.value, element, creationDate);    // Update the information 
   });
-
-  element.addEventListener('keydown', function(e) {
-    if (e.key == 'Tab') {
+  element.addEventListener('keyup', function(e) {
+    if (e.key == 'Tab') {                            // New element listener for Tab key 
       e.preventDefault();
-      var start = this.selectionStart;
-      var end = this.selectionEnd;
-
+      let start = this.selectionStart;
+      let end = this.selectionEnd;
       this.value = this.value.substring(0, start) +
         "\t" + this.value.substring(end);
-  
       this.selectionStart =
         this.selectionEnd = start + 1;
     }
-
-    updateNote(id, element.value);
-    notes = getNotes();
-    saveNotes(notes);
+    updateNote(id, element.value, element, creationDate);   // Update the information
   });
-
-    element.addEventListener("dblclick", () => {
-    const doDelete = confirm("Do you want to delete this note?"
-    );
-
-    if (doDelete) {
-      deleteNote(id, element);
-    }
-  });
-
   return element;
 }
 
-function createNoteElement2(id, content, creationDate, dateUpdate) {
-  //const element2 = document.createElement("textarea");
-  const element2 = document.createElement("div");
-  element2.classList.add("date");
-  element2.innerHTML = '<b>Creation date:</b> ' + creationDate + ', <b>Last update:</b> '+ dateUpdate;
-  //element2.value = 'Creation date: ' + creationDate + '          ' + 'Last Update: '+ dateUpdate;
-  //element2.placeholder = "Empty Sticky Note";
+function createDeleteButtom(id) {   // create a "Del Note button"
+  let element = document.createElement("div");
+  element.classList.add("delete");
+  element.innerHTML = '<b>- Del Note</b>';
+  element.addEventListener("click", () => {
+    let doDelete = confirm("Do you want to delete this note?"
+    );
+    if (doDelete) {
+      deleteNote(id, element);         
+    }
+  });
+  return element;
+}
 
+function createDatesInfoArea(creationDate, dateUpdate) {     // create the tirdh element
+  let element = document.createElement("div");
+  element.classList.add("date");
+  element.innerHTML = '<b>Creation date:</b> ' + creationDate + ', <b>Last update:</b> '+ dateUpdate;
+  return element;
+}
 
-  return element2;
+function getNotes() {
+  return JSON.parse(localStorage.getItem("notes-stored") || "[]");   // Get the notes information from local storage 
+}
+
+function saveNotes(notes) {
+  localStorage.setItem("notes-stored", JSON.stringify(notes));   // Save the notes information in local storage 
 }
 
 function addNote() {
-  const dateCreation= new Date().toLocaleString();
-  const dateUpdate= new Date().toLocaleString();
-  const notes = getNotes();
-  const noteObject = {
-    id: Math.floor(Math.random() * 100000),
+  let dateCreation= new Date().toLocaleString();
+  let dateUpdate= new Date().toLocaleString();
+  let notes = getNotes();
+  let id;
+  if (notes.length==0){
+    id=1;
+  }else{
+    id=notes[notes.length-1].id+1;  
+  }
+  let noteObject = {
+    id: id,
     content: "",
     creationDate: dateCreation,
     dateUpdate: dateUpdate
   };
 
-  const noteElement = createNoteElement(noteObject.id, noteObject.content, noteObject.creationDate, noteObject.dateUpdate);
-  notesContainer.insertBefore(noteElement, addNoteButton);
-
-  const noteElement2 = createNoteElement2(noteObject.id, noteObject.content, noteObject.creationDate, noteObject.dateUpdate);
-  notesContainer.insertBefore(noteElement2, addNoteButton);
-  
+  let elements = createNoteElements(noteObject.id, noteObject.content, noteObject.creationDate, noteObject.dateUpdate);
+  let fragment2 = document.createDocumentFragment();
+  fragment2.appendChild(elements[0]);
+  fragment2.appendChild(elements[1]);
+  fragment2.appendChild(elements[2]);
+  notesContainer.insertBefore(fragment2, addNoteButton);
   notes.push(noteObject);
   saveNotes(notes);
 }
 
-function updateNote(id, newContent) {
-  const notes = getNotes();
-  const targetNote = notes.filter((note) => note.id == id)[0];
-
+function updateNote(id, newContent, element, creationDate) {
+  let notes = getNotes();
+  let targetNote = notes.filter((note) => note.id == id)[0];
   targetNote.content = newContent;
   targetNote.dateUpdate=new Date().toLocaleString();
+  let index = Array.from(
+     element.parentElement.children
+   ).indexOf(element);
+  let element_date=notesContainer.children[index+2];
+  element_date.innerHTML = '<b>Creation date:</b> ' + creationDate + ', <b>Last update:</b> '+ targetNote.dateUpdate;
   saveNotes(notes);
 }
 
 function deleteNote(id, element) {
-  const notes = getNotes().filter((note) => note.id != id);
-
+  let notes = getNotes().filter((note) => note.id != id);
   saveNotes(notes);
-  const index = Array.from(
+  let index = Array.from(
     element.parentElement.children
   ).indexOf(element);
-  console.log(index);
-  
-  
   notesContainer.removeChild(notesContainer.children[index+1]);
   notesContainer.removeChild(notesContainer.children[index]);
-  
+  notesContainer.removeChild(notesContainer.children[index-1]);
 }
+
